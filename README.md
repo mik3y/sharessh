@@ -24,6 +24,10 @@ I ran into this situation and remembered GitHub exposes public keys as `https://
 
 Connecting users will have shell access for whatever user runs this command.
 
+## Changelog
+
+See [CHANGELOG.md](https://github.com/mik3y/sharessh/blob/master/CHANGELOG.md) for the latest changes.
+
 ## Contributing
 
 Contributions welcome! Open an issue or a pull request if you've got ideas.
