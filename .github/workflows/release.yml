@@ -13,7 +13,7 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v2
       - name: Generate build files
-        uses: thatisuday/go-build-action@v1
+        uses: mik3y/go-cross-build@master
         with:
           platforms: "linux/amd64, linux/arm, darwin/amd64, darwin/arm64"
           name: "sharessh"
