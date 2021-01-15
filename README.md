@@ -5,7 +5,7 @@ A simple tool to temporarily share SSH access to your machine, to a specific Git
 ## Usage
 
 ```
-$ sharessh <github username>
+$ go run github.com/mik3y/sharessh <github username>
 ```
 
 Sharessh will start a new SSH server on port 2222. It will authorize the github username you provide with all of their GitHub-registered public keys.
