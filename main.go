@@ -18,6 +18,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var port = flag.Int("port", 2222, "Run on this port")
+var debug = flag.Bool("debug", false, "Enable debug output")
+
 func setWinsize(f *os.File, w, h int) {
 	syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), uintptr(syscall.TIOCSWINSZ),
 		uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(h), uint16(w), 0, 0})))
@@ -31,6 +34,10 @@ func getKeysFromGithub(username string) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("GitHub user %v not found", username)
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Status error: %v", resp.StatusCode)
 	}
@@ -43,6 +50,20 @@ func getKeysFromGithub(username string) ([]string, error) {
 	return strings.Split(string(data), "\n"), nil
 }
 
+func guessPublicIp() string {
+	url := "https://api.ipify.org?format=text"
+	resp, err := http.Get(url)
+	if err != nil {
+		return "<your ip>"
+	}
+	defer resp.Body.Close()
+	ip, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "<your ip>"
+	}
+	return string(ip)
+}
+
 func usage() {
 	fmt.Println("Usage: sharessh <username>")
 }
@@ -50,6 +71,14 @@ func usage() {
 func main() {
 	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+
+	if *debug {
+		config.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	} else {
+		config.EncoderConfig.EncodeCaller = nil
+		config.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	}
+
 	rawLogger, _ := config.Build()
 	logger := rawLogger.Sugar()
 
@@ -111,8 +140,13 @@ func main() {
 		return false
 	})
 
-	logger.Info("starting ssh server on port 2222...")
-	err = ssh.ListenAndServe(":2222", nil, publicKeyOption)
+	ip := guessPublicIp()
+
+	logger.Infof("Running SSH server on port %v for @%v", *port, username)
+	logger.Infof("Share this command:\n\n  ssh -o StrictHostKeyChecking=no -p %v %v\n", *port, ip)
+	logger.Info("Press CTRL-C to quit.")
+	listenAddr := fmt.Sprintf(":%v", *port)
+	err = ssh.ListenAndServe(listenAddr, nil, publicKeyOption)
 	if err != nil {
 		logger.Fatalf("Error: %v", err)
 	}
